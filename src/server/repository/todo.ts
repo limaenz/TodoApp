@@ -38,8 +38,17 @@ function get({
     };
 }
 
+async function createdByContent(content: string): Promise<Todo> {
+    const newTodo: Todo[] = [
+        { id: "1", content: content, date: new Date(), done: false },
+    ];
+
+    return newTodo;
+}
+
 export const todoRepository = {
     get,
+    createdByContent,
 };
 
 interface Todo {
