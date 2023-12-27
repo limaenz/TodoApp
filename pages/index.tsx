@@ -16,6 +16,7 @@ function HomePage() {
     const [search, setSearch] = React.useState("");
     const [IsLoading, setIsLoading] = React.useState(true);
     const [todos, setTodos] = React.useState<HomeTodo[]>([]);
+    const [newTodoContent, setNewTodoContent] = React.useState("");
 
     const homeTodos = todoController.filterTodosByContent(search, todos);
 
@@ -49,8 +50,33 @@ function HomePage() {
                 <div className="typewriter">
                     <h1>O que fazer hoje?</h1>
                 </div>
-                <form>
-                    <input type="text" placeholder="Correr, Estudar..." />
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        todoController.create({
+                            content: newTodoContent,
+                            onSuccess(todo: HomeTodo) {
+                                setTodos((oldTodos) => {
+                                    return [todo, ...oldTodos];
+                                });
+                                setNewTodoContent("");
+                            },
+                            onError() {
+                                alert(
+                                    "Você precisa ter um conteúdo para criar uma TODO!"
+                                );
+                            },
+                        });
+                    }}
+                >
+                    <input
+                        type="text"
+                        placeholder="Correr, Estudar..."
+                        value={newTodoContent}
+                        onChange={function newTodoHandler(event) {
+                            setNewTodoContent(event.target.value);
+                        }}
+                    />
                     <button type="submit" aria-label="Adicionar novo item">
                         +
                     </button>
