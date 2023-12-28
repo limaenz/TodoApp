@@ -66,9 +66,36 @@ export async function createdByContent(content: string): Promise<Todo> {
     throw new Error("Failed to create TODO");
 }
 
+async function toggleDone(todoId: string): Promise<Todo> {
+    const response = await fetch(`/api/todos/${todoId}/toggle-done`, {
+        method: "PUT",
+    });
+
+    if (response.ok) {
+        const serverResponse = await response.json();
+
+        const ServerResponseSchema = schema.object({
+            todo: TodoSchema,
+        });
+
+        const serverResponseParsed =
+            ServerResponseSchema.safeParse(serverResponse);
+
+        if (!serverResponseParsed.success) {
+            throw new Error(`Failed to update TODO with ${todoId}`);
+        }
+
+        const todo = serverResponseParsed.data.todo;
+        return todo;
+    }
+
+    throw new Error("Server Error");
+}
+
 export const todoRepository = {
     get,
     createdByContent,
+    toggleDone,
 };
 
 function parseTodosFromServer(responseBody: unknown): {
