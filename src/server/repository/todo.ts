@@ -1,3 +1,5 @@
+import { read } from "fs";
+
 interface TodoRepositoryGetParams {
     page?: number;
     limit?: number;
@@ -39,16 +41,34 @@ function get({
 }
 
 async function createdByContent(content: string): Promise<Todo> {
-    const newTodo: Todo[] = [
-        { id: "1", content: content, date: new Date(), done: false },
-    ];
+    const newTodo: Todo[] = {
+        id: "92bd9592-a610-45e3-b810-373b816910ac",
+        content: content,
+        date: new Date(),
+        done: false,
+    };
 
     return newTodo;
+}
+
+async function toggleDone(id: string): Promise<Todo> {
+    const ALL_TODOS = read();
+
+    const todo = ALL_TODOS.find((todo) => todo.id === id);
+
+    if (!todo) throw new Error(`Todo with id "${id}" not found`);
+
+    const updatedTodo = update(id, {
+        done: !todo.done,
+    });
+
+    return updatedTodo;
 }
 
 export const todoRepository = {
     get,
     createdByContent,
+    toggleDone,
 };
 
 interface Todo {
