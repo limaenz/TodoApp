@@ -1,5 +1,10 @@
 import { read } from "fs";
 import { HttpNotFoundError } from "@server/infra/errors";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface TodoRepositoryGetParams {
     page?: number;
@@ -12,33 +17,48 @@ interface TodoRepositoryGetOutput {
     pages: number;
 }
 
-function get({
+async function get({
     page,
     limit,
-}: TodoRepositoryGetParams = {}): TodoRepositoryGetOutput {
-    const currentPage = page || 1;
-    const currentLimit = limit || 10;
+}: TodoRepositoryGetParams = {}): Promise<TodoRepositoryGetOutput> {
+    const { data, error, count } = await supabase.from("todos").select("*", {
+        count: "exact",
+    });
 
-    const todos: Todo[] = [
-        { id: "1", content: "Primeira TODO", date: new Date(), done: false },
-        { id: "2", content: "Segunda TODO", date: new Date(), done: false },
-        { id: "3", content: "Terceira TODO", date: new Date(), done: false },
-        { id: "4", content: "Quarto Teste", date: new Date(), done: false },
-        { id: "5", content: "Quinto Teste", date: new Date(), done: false },
-        { id: "6", content: "Sexto teste", date: new Date(), done: false },
-    ];
+    if (error) throw new Error("Failed to fetch date");
 
-    const ALL_TODOS = todos;
-    const startIndex = (currentPage - 1) * currentLimit;
-    const endIndex = currentPage * currentLimit;
-    const paginatedTodos = ALL_TODOS.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(ALL_TODOS.length / currentLimit);
+    const todos = data as Todo[];
+    const total = count || todos.length;
 
     return {
-        total: ALL_TODOS.length,
-        todos: paginatedTodos,
-        pages: totalPages,
+        todos,
+        total,
+        pages: 1,
     };
+
+    // const currentPage = page || 1;
+    // const currentLimit = limit || 10;
+
+    // const todos: Todo[] = [
+    //     { id: "1", content: "Primeira TODO", date: new Date(), done: false },
+    //     { id: "2", content: "Segunda TODO", date: new Date(), done: false },
+    //     { id: "3", content: "Terceira TODO", date: new Date(), done: false },
+    //     { id: "4", content: "Quarto Teste", date: new Date(), done: false },
+    //     { id: "5", content: "Quinto Teste", date: new Date(), done: false },
+    //     { id: "6", content: "Sexto teste", date: new Date(), done: false },
+    // ];
+
+    // const ALL_TODOS = todos;
+    // const startIndex = (currentPage - 1) * currentLimit;
+    // const endIndex = currentPage * currentLimit;
+    // const paginatedTodos = ALL_TODOS.slice(startIndex, endIndex);
+    // const totalPages = Math.ceil(ALL_TODOS.length / currentLimit);
+
+    // return {
+    //     total: ALL_TODOS.length,
+    //     todos: paginatedTodos,
+    //     pages: totalPages,
+    // };
 }
 
 async function createdByContent(content: string): Promise<Todo> {
