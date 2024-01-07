@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint './**/*.{jsx,jsx,ts,tsx}'",
     "lint:fix": "npm run lint -- --fix",
-    "cypress:open": "cypress open"
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test": "start-server-and-test dev http://localhost:3000 cy:run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.2",
@@ -34,6 +36,7 @@
     "eslint-plugin-react": "^7.32.2",
     "nodemon": "^2.0.21",
     "prettier": "^2.8.7",
+    "start-server-and-test": "^2.0.3",
     "typescript": "^5.3.3"
   }
 }
