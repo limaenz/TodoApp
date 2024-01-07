@@ -1,11 +1,6 @@
-import { read } from "fs";
 import { HttpNotFoundError } from "@server/infra/errors";
-import { createClient } from "@supabase/supabase-js";
 import { Todo, TodoSchema } from "@server/schema/todo";
-
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_SECRET_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@server/infra/db/supabase";
 
 interface TodoRepositoryGetParams {
     page?: number;
@@ -32,17 +27,14 @@ async function get({
         .select("*", {
             count: "exact",
         })
+        .order("date", { ascending: false })
         .range(startIndex, endIndex);
 
     if (error) throw new Error("Failed to fetch date");
 
-    const parsedData = TodoSchema.array().safeParse(data);
+    const parsedData = TodoSchema.array().parse(data);
 
-    if (!parsedData.success) {
-        throw new Error("Failed to parse TODO from database");
-    }
-
-    const todos = parsedData.data;
+    const todos = parsedData;
     const total = count || todos.length;
     const totalPages = Math.ceil(total / currentLimit);
 
@@ -57,69 +49,55 @@ async function createdByContent(content: string): Promise<Todo> {
     const { data, error } = await supabase
         .from("todos")
         .insert({ content: content })
+        .select()
+        .single();
+
+    if (error) throw new Error("Failed to create content");
+
+    const parsedData = TodoSchema.parse(data);
+
+    return parsedData;
+}
+
+async function getTodoById(id: string): Promise<Todo> {
+    const { data, error } = await supabase
+        .from("todos")
+        .select("*")
+        .eq("id", id)
         .select();
 
-    if (error) throw new Error("Failed to create by content");
+    if (error) throw new Error("Failed to get todo by id");
 
-    const parsedData = TodoSchema.safeParse(data[0]);
+    const parsedData = TodoSchema.parse(data);
 
-    if (!parsedData.success) {
-        throw new Error("Failed to parse TODO from database");
-    }
-
-    return parsedData.data;
+    return parsedData;
 }
 
 async function toggleDone(id: string): Promise<Todo> {
-    const { data, error } = await supabase.from("todos").select("*");
+    const todo = await getTodoById(id);
 
-    if (error) throw new Error("Failed to fetch date");
-
-    const parsedData = TodoSchema.array().safeParse(data);
-
-    if (!parsedData.success) {
-        throw new Error("Failed to parse TODO from database");
-    }
-
-    const todo = parsedData.data.find((todo) => todo.id === id);
-
-    if (!todo) throw new Error(`Todo with id "${id}" not found`);
-
-    const { data: updateTodo, error: updateError } = await supabase
+    const { data, error } = await supabase
         .from("todos")
         .update({
             done: !todo.done,
         })
         .eq("id", id)
-        .select();
+        .select()
+        .single();
 
-    if (updateError) throw new Error("Failed to update date");
+    if (error) throw new Error("Failed to get todo by id");
 
-    const parsedDataUpdate = TodoSchema.safeParse(updateTodo[0]);
+    const parsedData = TodoSchema.parse(data);
 
-    if (!parsedDataUpdate.success) {
-        throw new Error("Failed to parse TODO from database");
-    }
-
-    return parsedDataUpdate.data;
+    return parsedData;
 }
 
 async function deleteById(id: string) {
-    const { data, error } = await supabase.from("todos").select("*");
+    const { error } = await supabase.from("todos").delete().match({
+        id,
+    });
 
-    if (error) throw new Error("Failed to fetch date");
-
-    const parsedData = TodoSchema.array().safeParse(data);
-
-    if (!parsedData.success) {
-        throw new Error("Failed to parse TODO from database");
-    }
-
-    const todo = parsedData.data.find((todo) => todo.id === id);
-
-    if (!todo) throw new HttpNotFoundError(`Todo with id "${id}" not found`);
-
-    await supabase.from("todos").delete().eq("id", id);
+    if (error) throw new HttpNotFoundError(`Todo with id "${id}" not found`);
 }
 
 export const todoRepository = {
