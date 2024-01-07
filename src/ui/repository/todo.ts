@@ -1,5 +1,5 @@
 import { Todo, TodoSchema } from "@ui/schema/todo";
-import { z as schema } from "zod";
+import { number, z as schema, string } from "zod";
 
 interface TodoRepositoryGetParams {
     page: number;
@@ -12,26 +12,38 @@ interface TodoRepositoryGetOutput {
     pages: number;
 }
 
-function get({
+async function get({
     page,
     limit,
 }: TodoRepositoryGetParams): Promise<TodoRepositoryGetOutput> {
-    return fetch(`/api/todos?page=${page}&limit=${limit}`).then(
-        async (respostaDoServidor) => {
-            const todosString = await respostaDoServidor.text();
+    const response = await fetch(`/api/todos?page=${page}&limit=${limit}`, {
+        method: "GET",
+    });
 
-            // Como garantir a tipagem de tipos desconhecidos?
-            const responseParsed = parseTodosFromServer(
-                JSON.parse(todosString)
-            );
+    if (response.ok) {
+        const serverResponse = await response.json();
 
-            return {
-                todos: responseParsed.todos,
-                total: responseParsed.total,
-                pages: responseParsed.pages,
-            };
+        const ServerResponseSchema = schema.object({
+            total: schema.number(),
+            pages: schema.number(),
+            todos: TodoSchema.array(),
+        });
+
+        const serverResponseParsed =
+            ServerResponseSchema.safeParse(serverResponse);
+
+        if (!serverResponseParsed.success) {
+            throw new Error("Failed to fetch TODO");
         }
-    );
+
+        return {
+            todos: serverResponseParsed.data.todos,
+            total: serverResponseParsed.data.total,
+            pages: serverResponseParsed.data.pages,
+        };
+    }
+
+    throw new Error("Server Error");
 }
 
 export async function createdByContent(content: string): Promise<Todo> {
@@ -63,7 +75,7 @@ export async function createdByContent(content: string): Promise<Todo> {
         return todo;
     }
 
-    throw new Error("Failed to create TODO");
+    throw new Error("Server Error");
 }
 
 async function toggleDone(todoId: string): Promise<Todo> {

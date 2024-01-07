@@ -54,36 +54,72 @@ async function get({
 }
 
 async function createdByContent(content: string): Promise<Todo> {
-    const newTodo: Todo[] = {
-        id: "92bd9592-a610-45e3-b810-373b816910ac",
-        content: content,
-        date: new Date(),
-        done: false,
-    };
+    const { data, error } = await supabase
+        .from("todos")
+        .insert({ content: content })
+        .select();
 
-    return newTodo;
+    if (error) throw new Error("Failed to create by content");
+
+    const parsedData = TodoSchema.safeParse(data[0]);
+
+    if (!parsedData.success) {
+        throw new Error("Failed to parse TODO from database");
+    }
+
+    return parsedData.data;
 }
 
 async function toggleDone(id: string): Promise<Todo> {
-    const ALL_TODOS = read();
+    const { data, error } = await supabase.from("todos").select("*");
 
-    const todo = ALL_TODOS.find((todo) => todo.id === id);
+    if (error) throw new Error("Failed to fetch date");
+
+    const parsedData = TodoSchema.array().safeParse(data);
+
+    if (!parsedData.success) {
+        throw new Error("Failed to parse TODO from database");
+    }
+
+    const todo = parsedData.data.find((todo) => todo.id === id);
 
     if (!todo) throw new Error(`Todo with id "${id}" not found`);
 
-    const updatedTodo = update(id, {
-        done: !todo.done,
-    });
+    const { data: updateTodo, error: updateError } = await supabase
+        .from("todos")
+        .update({
+            done: !todo.done,
+        })
+        .eq("id", id)
+        .select();
 
-    return updatedTodo;
+    if (updateError) throw new Error("Failed to update date");
+
+    const parsedDataUpdate = TodoSchema.safeParse(updateTodo[0]);
+
+    if (!parsedDataUpdate.success) {
+        throw new Error("Failed to parse TODO from database");
+    }
+
+    return parsedDataUpdate.data;
 }
 
 async function deleteById(id: string) {
-    const ALL_TODOS = read();
-    const todo = ALL_TODOS.find((todo) => todo.id === id);
+    const { data, error } = await supabase.from("todos").select("*");
+
+    if (error) throw new Error("Failed to fetch date");
+
+    const parsedData = TodoSchema.array().safeParse(data);
+
+    if (!parsedData.success) {
+        throw new Error("Failed to parse TODO from database");
+    }
+
+    const todo = parsedData.data.find((todo) => todo.id === id);
 
     if (!todo) throw new HttpNotFoundError(`Todo with id "${id}" not found`);
-    dbDeleteById(id);
+
+    await supabase.from("todos").delete().eq("id", id);
 }
 
 export const todoRepository = {
