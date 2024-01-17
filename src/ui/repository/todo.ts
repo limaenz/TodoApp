@@ -1,5 +1,5 @@
 import { Todo, TodoSchema } from "@ui/schema/todo";
-import { number, z as schema, string } from "zod";
+import { z as schema } from "zod";
 
 interface TodoRepositoryGetParams {
     page: number;
