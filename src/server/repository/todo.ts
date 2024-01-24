@@ -62,9 +62,9 @@ async function createdByContent(content: string): Promise<Todo> {
 async function getTodoById(id: string): Promise<Todo> {
     const { data, error } = await supabase
         .from("todos")
-        .select("*")
+        .select()
         .eq("id", id)
-        .select();
+        .single();
 
     if (error) throw new Error("Failed to get todo by id");
 
