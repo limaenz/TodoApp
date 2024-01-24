@@ -98,10 +98,10 @@ async function create(req: NextApiRequest, res: NextApiResponse) {
 
 async function toggleDone(req: NextApiRequest, res: NextApiResponse) {
     const QuerySchema = schema.object({
-        id: schema.string(),
+        id: schema.string().uuid().nonempty(),
     });
 
-    const parsedQuery = QuerySchema.safeParse(req.query.id);
+    const parsedQuery = QuerySchema.safeParse(req.query);
 
     if (!parsedQuery.success) {
         res.status(400).json({
@@ -113,7 +113,8 @@ async function toggleDone(req: NextApiRequest, res: NextApiResponse) {
     }
 
     try {
-        const updateTodo = await todoRepository.toggleDone(parsedQuery.data.id);
+        const todoId = parsedQuery.data.id;
+        const updateTodo = await todoRepository.toggleDone(todoId);
 
         res.status(200).json({
             todo: updateTodo,
