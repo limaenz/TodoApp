@@ -1,28 +1,31 @@
 import { todoRepository } from "@server/repository/todo";
-import { NextApiRequest, NextApiResponse } from "next";
 import { z as schema } from "zod";
 import { HttpNotFoundError } from "@server/infra/errors";
+import { NextRequest } from "next/server";
 
-async function get(req: NextApiRequest, res: NextApiResponse) {
+async function get(request: NextRequest) {
     const QuerySchema = schema.object({
         page: schema.number(),
         limit: schema.number(),
     });
+    const searchParams = request.nextUrl.searchParams;
 
     const query = {
-        page: Number(req.query.page),
-        limit: Number(req.query.limit),
+        page: Number(searchParams.get("page")),
+        limit: Number(searchParams.get("limit")),
     };
 
     const parsedQuery = QuerySchema.safeParse(query);
 
     if (!parsedQuery.success) {
-        res.status(400).json({
-            error: {
-                message: `You must to provide a valid page or limit`,
-            },
-        });
-        return;
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: "You must to provide a valid page or limit",
+                },
+            }),
+            { status: 400 }
+        );
     }
 
     try {
@@ -30,26 +33,33 @@ async function get(req: NextApiRequest, res: NextApiResponse) {
         const limit = parsedQuery.data.limit;
 
         const output = await todoRepository.get({ page, limit });
-
-        res.status(200).json({
-            total: output.total,
-            pages: output.pages,
-            todos: output.todos,
-        });
+        return new Response(
+            JSON.stringify({
+                total: output.total,
+                pages: output.pages,
+                todos: output.todos,
+            }),
+            { status: 200 }
+        );
     } catch (err) {
         if (err instanceof Error) {
-            res.status(400).json({
-                error: {
-                    message: err.message,
-                },
-            });
+            return new Response(
+                JSON.stringify({
+                    error: {
+                        message: err.message,
+                    },
+                }),
+                { status: 400 }
+            );
         }
-
-        res.status(500).json({
-            error: {
-                message: `Internal server error`,
-            },
-        });
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: `Internal server error`,
+                },
+            }),
+            { status: 500 }
+        );
     }
 }
 
@@ -57,120 +67,152 @@ const TodoCreateBodySchema = schema.object({
     content: schema.string(),
 });
 
-async function create(req: NextApiRequest, res: NextApiResponse) {
+async function create(request: Request) {
     // Fail fast validations
-    const body = TodoCreateBodySchema.safeParse(req.body);
+    const res = await request.json();
+    const body = TodoCreateBodySchema.safeParse(res);
 
     // Type Narrowing
     if (!body.success) {
-        res.status(400).json({
-            error: {
-                message: "You need to provide a content to create a TODO",
-                description: body.error.issues,
-            },
-        });
-        return;
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: "You need to provide a content to create a TODO",
+                    description: body.error.issues,
+                },
+            }),
+            { status: 400 }
+        );
     }
+
     try {
         const createdTodo = await todoRepository.createdByContent(
-            req.body.content
+            body.data.content
         );
 
-        res.status(201).json({
-            todo: createdTodo,
-        });
+        return new Response(
+            JSON.stringify({
+                todo: createdTodo,
+            }),
+            { status: 201 }
+        );
     } catch (err) {
         if (err instanceof Error) {
-            res.status(400).json({
-                error: {
-                    message: err.message,
-                },
-            });
+            return new Response(
+                JSON.stringify({
+                    error: {
+                        message: err.message,
+                    },
+                }),
+                { status: 400 }
+            );
         }
 
-        res.status(500).json({
-            error: {
-                message: `Internal server error`,
-            },
-        });
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: `Internal server error`,
+                },
+            }),
+            { status: 500 }
+        );
     }
 }
 
-async function toggleDone(req: NextApiRequest, res: NextApiResponse) {
+async function toggleDone(request: Request, params: { id: string }) {
     const QuerySchema = schema.object({
         id: schema.string().uuid().nonempty(),
     });
 
-    const parsedQuery = QuerySchema.safeParse(req.query);
+    const parsedQuery = QuerySchema.safeParse(params);
 
     if (!parsedQuery.success) {
-        res.status(400).json({
-            error: {
-                message: "You must to provide a string ID",
-            },
-        });
-        return;
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: "You must to provide a string ID",
+                },
+            }),
+            { status: 400 }
+        );
     }
 
     try {
         const todoId = parsedQuery.data.id;
         const updateTodo = await todoRepository.toggleDone(todoId);
 
-        res.status(200).json({
-            todo: updateTodo,
-        });
+        return new Response(
+            JSON.stringify({
+                todo: updateTodo,
+            }),
+            { status: 200 }
+        );
     } catch (err) {
         if (err instanceof Error) {
-            res.status(400).json({
-                error: {
-                    message: err.message,
-                },
-            });
+            return new Response(
+                JSON.stringify({
+                    error: {
+                        message: err.message,
+                    },
+                }),
+                { status: 400 }
+            );
         }
+    }
 
-        res.status(500).json({
+    return new Response(
+        JSON.stringify({
             error: {
                 message: `Internal server error`,
             },
-        });
-    }
+        }),
+        { status: 500 }
+    );
 }
 
-async function deleteById(req: NextApiRequest, res: NextApiResponse) {
+async function deleteById(request: Request, params: { id: string }) {
     const QuerySchema = schema.object({
         id: schema.string().uuid().nonempty(),
     });
 
-    const parsedQuery = QuerySchema.safeParse(req.query);
+    const parsedQuery = QuerySchema.safeParse(params);
 
     if (!parsedQuery.success) {
-        res.status(400).json({
-            error: {
-                message: `You must to provide a valid id`,
-            },
-        });
-        return;
+        return new Response(
+            JSON.stringify({
+                error: {
+                    message: `You must to provide a valid id`,
+                },
+            }),
+            { status: 400 }
+        );
     }
 
     try {
         const todoId = parsedQuery.data.id;
         await todoRepository.deleteById(todoId);
-        res.status(204).end();
+        return new Response(null, { status: 204 });
     } catch (err) {
         if (err instanceof HttpNotFoundError) {
-            return res.status(err.status).json({
-                error: {
-                    message: err.message,
-                },
-            });
+            return new Response(
+                JSON.stringify({
+                    error: {
+                        message: err.message,
+                    },
+                }),
+                { status: err.status }
+            );
         }
+    }
 
-        res.status(500).json({
+    return new Response(
+        JSON.stringify({
             error: {
                 message: `Internal server error`,
             },
-        });
-    }
+        }),
+        { status: 500 }
+    );
 }
 
 export const todoController = {

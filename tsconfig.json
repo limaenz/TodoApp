@@ -19,21 +19,27 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@ui/*":[
+      "@ui/*": [
         "src/ui/*"
       ],
       "@/*": [
         "./*"
       ],
-      "@server/*":[
+      "@server/*": [
         "src/server/*"
       ]
-    }
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
