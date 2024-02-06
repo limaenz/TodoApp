@@ -18,9 +18,10 @@ Criando uma aplicação que é possível criar para serem feitas tarefas com uma
 
 O projeto **TodoApp** foi desenvolvido com NextJS, ReactJS, Supabase e TypeScript. 
 
-Deploy com Github Actions (CI/CD)
-Testes E2E com Cypress
-Integração do front com ReactJS e back end com NextJS
+-> Deploy com Github Actions (CI/CD). 
+-> Testes E2E com Cypress. 
+-> Integração do front com ReactJS e back end com NextJS. 
+
 ---
 
 ## 🚀 Tecnologias utilizadas
